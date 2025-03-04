@@ -7,7 +7,7 @@ from urllib import parse, request
 import re
 import json
 import os
-from youtube_dl import YoutubeDL
+from yt_dlp import YoutubeDL
 
 class music_cog(commands.Cog):
     def __init__(self, bot):
@@ -81,17 +81,20 @@ class music_cog(commands.Cog):
         with YoutubeDL(self.YTDL_OPTIONS) as ydl:
             try:
                 info = ydl.extract_info(url, download=False)
-
-            except:
+                if "formats" not in info or not info["formats"]:
+                    return False  # No valid formats found
+                
+                return {
+                    'link': f'https://www.youtube.com/watch?v={url}',
+                    'thumbnail': f'https://i.ytimg.com/vi/{url}/hqdefault.jpg',
+                    'source': info["formats"][0].get("url", ""),  # Use .get() to avoid KeyError
+                    'title': info.get('title', 'Unknown Title')  # Use .get() to prevent KeyError
+                }
+            except Exception as e:
+                print(f"Error extracting YouTube info: {e}")
                 return False
-        
-        return {
-            'link': 'https://www.youtube.com/watch?v=' + url,
-            'thumbnail': 'https://i.ytimg.com/vi/' + url + '/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLD5uL4xKN-IUfez6KIW_j5y70mlig',
-            'source': info['formats'][0]['url'],
-            'title': info['title']
-        }   
-    
+
+
     def play_next(self, ctx):
         id = int(ctx.guild.id)
         if not self.is_playing[id]:
@@ -133,17 +136,42 @@ class music_cog(commands.Cog):
             self.queueIndex[id] += 1
             self.is_playing[id] = False
 
-    @commands.command(name = 'play', aliases = ['p'], help = '')
+    @commands.command(name="play", aliases=["p"], help="")
     async def play(self, ctx, *args):
         search = " ".join(args)
         id = int(ctx.guild.id)
         try:
             userChannel = ctx.author.voice.channel
         except:
-            ctx.send("")
+            await ctx.send("You need to be in a voice channel to use this command! ❌")
+            return
+        if not args:
+            if len(self.musicQueue[id]) == 0:
+                await ctx.send("There is no song in the queue.")        
+                return
+            elif not self.is_playing[id]:
+                if self.musicQueue[id] == None or self.vc[id] == None:
+                    await self.play_music(ctx)
+                else:
+                    self.is_playing[id] = True
+                    self.is_paused[id] = False
+                    self.vc[id].resume()
+            else:
+                return
+        else:
+            song = self.extract_yt(self.search_yt(search)[0])
+            if type(song) == type(True):
+                await ctx.send("Could not download the song. Incorrect format, Try some different keywords.")
+            else:
+                self.musicQueue[id].append((song, userChannel))
+                if not self.is_playing[id]:
+                    await self.play_music(ctx)
+                else:
+                    message = "added to queue"
+                    await ctx.send(message)
 
-    @commands.command(name = 'join', aliases = ['j'], help = '')
-    async def join_vc(self, ctx, channel=None):
+    @commands.command(name="join", aliases=["j"], help="Join a voice channel")
+    async def join(self, ctx, channel=None):
         guild_id = ctx.guild.id
 
         # Ensure self.vc dictionary is initialized
