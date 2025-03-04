@@ -1,0 +1,10 @@
+PyNaCl
+
+discord.py[voice]
+
+youtube-dl
+
+discord.components
+
+urllib3
+
