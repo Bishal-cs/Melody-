@@ -133,6 +133,15 @@ class music_cog(commands.Cog):
             self.queueIndex[id] += 1
             self.is_playing[id] = False
 
+    @commands.command(name = 'play', aliases = ['p'], help = '')
+    async def play(self, ctx, *args):
+        search = " ".join(args)
+        id = int(ctx.guild.id)
+        try:
+            userChannel = ctx.author.voice.channel
+        except:
+            ctx.send("")
+
     @commands.command(name = 'join', aliases = ['j'], help = '')
     async def join_vc(self, ctx, channel=None):
         guild_id = ctx.guild.id

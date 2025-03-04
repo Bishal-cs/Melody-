@@ -15,7 +15,7 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     await bot.add_cog(music_cog(bot))
 
-# Read bot token
+# Read bot token and put your tocken into token.txt file
 with open("token.txt", "r") as f:
     TOKEN = f.read().strip()
 
